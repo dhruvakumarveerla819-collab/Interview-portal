@@ -33,9 +33,11 @@ export function Recovery() {
   }, [s.teamId, tab]);
 
   const scan = () => run("scan", async () => {
-    const ivs = await fetchAll<RecInterview & { cand: { canonical_name: string } | null; cli: { canonical_name: string } | null }>((a, z) =>
+    type Iv = RecInterview & { cand: { canonical_name: string } | null; cli: { canonical_name: string } | null };
+    const ivs = await fetchAll<Iv>((a, z) =>
       supabase.from("interviews").select("id,work_date,start_min,candidate_name,candidate_id,client_name,client_id,round_no,is_loop,outcome,handler_id,raw_text,seq,cand:candidates(canonical_name),cli:clients(canonical_name)")
-        .eq("team_id", s.teamId!).not("round_no", "is", null).order("work_date").range(a, z));
+        .eq("team_id", s.teamId!).not("round_no", "is", null).order("work_date").range(a, z)
+        .overrideTypes<Iv[], { merge: false }>());
     const ledger = await fetchAll<RecLedgerRow>((a, z) =>
       supabase.from("incentives").select("earning_interview_id,candidate_name,client_name,from_round,previous_date,handler_id").eq("team_id", s.teamId!).eq("type", "promotion").range(a, z));
     const rows = runRecovery(ivs.map((i) => ({ ...i, candidate_canonical: i.cand?.canonical_name ?? null, client_canonical: i.cli?.canonical_name ?? null })), ledger);

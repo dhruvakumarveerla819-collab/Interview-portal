@@ -39,9 +39,11 @@ export function Identity() {
 
   const sugg = useAsync(async () => {
     if (kind !== "suggestions") return [] as AliasSuggestion[];
-    const rows = await fetchAll<{ candidate_name: string | null; candidate_id: string | null; client_name: string | null; client_id: string | null; cli: { canonical_name: string } | null }>((a, b) =>
+    type Row = { candidate_name: string | null; candidate_id: string | null; client_name: string | null; client_id: string | null; cli: { canonical_name: string } | null };
+    const rows = await fetchAll<Row>((a, b) =>
       supabase.from("interviews").select("candidate_name,candidate_id,client_name,client_id,cli:clients(canonical_name)")
-        .eq("team_id", s.teamId!).gte("work_date", addDays(todayWorkDate(), -days)).range(a, b));
+        .eq("team_id", s.teamId!).gte("work_date", addDays(todayWorkDate(), -days)).range(a, b)
+        .overrideTypes<Row[], { merge: false }>());
     return suggestClientAliases(rows.map((r) => ({ ...r, client_canonical: r.cli?.canonical_name ?? null })));
   }, [s.teamId, kind, days]);
 
